@@ -1,6 +1,7 @@
 name: CI/CD - Environnement Dev (GG'Événements)
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - dev

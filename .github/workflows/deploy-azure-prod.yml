@@ -1,6 +1,7 @@
 name: CI/CD - Déploiement Production Azure (GG'Événements)
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
