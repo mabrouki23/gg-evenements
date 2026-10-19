@@ -1,10 +1,10 @@
 @description('Nom de l\'application (utilisé pour nommer toutes les ressources Azure)')
-param appName string = 'gg-evenements-cgodin'
+param appName string = 'gg-evenements'
 
 @description('Région Azure pour le déploiement')
 param location string = resourceGroup().location
 
-// --- 1. Plan App Service Basic B1 (Linux, Couvert par Azure for Students) ---
+// --- 1. Unique Plan App Service Linux B1 ---
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: 'asp-${appName}'
   location: location
@@ -18,8 +18,8 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   }
 }
 
-// --- 2. App Service Web App - Environnement PRODUCTION ---
-resource webAppProd 'Microsoft.Web/sites@2022-09-01' = {
+// --- 2. Unique App Service Web App (Spring Boot + React) ---
+resource webApp 'Microsoft.Web/sites@2022-09-01' = {
   name: appName
   location: location
   properties: {
@@ -56,27 +56,4 @@ resource webAppProd 'Microsoft.Web/sites@2022-09-01' = {
   }
 }
 
-// --- 3. App Service Web App - Environnement DEVELOPPEMENT (DEV) ---
-resource webAppDev 'Microsoft.Web/sites@2022-09-01' = {
-  name: '${appName}-dev'
-  location: location
-  properties: {
-    serverFarmId: appServicePlan.id
-    siteConfig: {
-      linuxFxVersion: 'JAVA|17-java17'
-      appSettings: [
-        {
-          name: 'SPRING_PROFILES_ACTIVE'
-          value: 'dev'
-        }
-        {
-          name: 'SPRING_DATASOURCE_URL'
-          value: 'jdbc:h2:mem:ggevenementsdev;DB_CLOSE_DELAY=-1;MODE=MySQL'
-        }
-      ]
-    }
-  }
-}
-
-output webAppProdUrl string = 'https://${webAppProd.properties.defaultHostName}'
-output webAppDevUrl string = 'https://${webAppDev.properties.defaultHostName}'
+output webAppUrl string = 'https://${webApp.properties.defaultHostName}'
