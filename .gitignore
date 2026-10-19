@@ -1,0 +1,9 @@
+target/
+.idea/
+*.iml
+uploads/*
+!uploads/.gitkeep
+.vscode/
+node_modules/
+.node/
+frontend/dist/
