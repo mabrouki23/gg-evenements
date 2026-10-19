@@ -46,7 +46,7 @@ jobs:
 
   deploy-dev-azure:
     needs: build-and-test-dev
-    if: github.ref == 'refs/heads/dev' && vars.AZURE_WEBAPP_NAME_DEV != ''
+    if: (github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch') && vars.AZURE_WEBAPP_NAME_DEV != ''
     runs-on: ubuntu-latest
 
     steps:
