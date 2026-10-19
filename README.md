@@ -58,6 +58,10 @@ Contrôleurs MVC → contrôleurs REST (`src/main/java/.../api`, JSON) ; gabarit
 | Public | etudiant1@ggevenements.ca … etudiant5@ggevenements.ca | Etudiant123! |
 | Compte désactivé (pour voir le message) | inactif@ggevenements.ca | Etudiant123! |
 
+## Règles de gestion : Création d'événements et Rôles
+
+Dans GG’Événements, seul le rôle Organisateur peut créer un événement, et il doit en plus être responsable d’au moins un club actif. L’étudiant (rôle Public) n’a pas accès à la création, et l’administrateur non plus, car l’énoncé précise qu’il supervise la plateforme sans créer d’événements à la place des organisateurs ; c’est pourquoi le lien de création n’apparaît pas avec le compte administrateur. Pour créer un événement, il faut se connecter avec un compte organisateur, par exemple organisateur@ggevenements.ca (mot de passe Organisateur123!), cliquer sur « Mes événements à organiser » dans la barre de navigation, puis sur « Créer un événement ». Ce compte dirige deux clubs, donc il doit d’abord choisir le club actif dans la liste, puis cliquer sur « Choisir ce club » ; avec un compte qui n’a qu’un seul club, comme organisateur2@ggevenements.ca, le club est choisi automatiquement. Le club n’est jamais un champ du formulaire : le serveur le déduit du compte connecté et refuse tout club qui n’appartient pas à l’organisateur. Pour donner cette compétence à une autre personne, l’administrateur doit aller dans Administration, puis Clubs, et créer ou modifier un club en désignant cette personne comme responsable : elle reçoit alors automatiquement le rôle Organisateur et peut créer des événements pour ce club.
+
 Scénario de démonstration : « Soirée jeux de société » est complète (2/2) avec 2 personnes en attente. Avec `etudiant1`, se désinscrire : `etudiant3` (la plus ancienne inscription en attente) passe à « Confirmé ». Avec `etudiant3` : *Mes événements › Passés › Laisser un avis*.
 
 ## Écrans (React Router)
