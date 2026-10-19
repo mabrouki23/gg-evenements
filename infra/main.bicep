@@ -1,20 +1,10 @@
 @description('Nom de l\'application (utilisé pour nommer toutes les ressources Azure)')
-param appName string = 'gg-evenements'
+param appName string = 'gg-evenements-cgodin'
 
 @description('Région Azure pour le déploiement')
 param location string = resourceGroup().location
 
-@description('Nom d\'utilisateur administrateur MySQL Azure')
-param mysqlAdminUser string = 'ggadmin'
-
-@description('Mot de passe administrateur MySQL Azure')
-@secure()
-param mysqlAdminPassword string
-
-@description('Rôle/SKU de la base de données MySQL Flexible Server')
-param mysqlSkuName string = 'Standard_B1ms'
-
-// --- 1. Plan App Service (Linux, Java 17) ---
+// --- 1. Plan App Service Basic B1 (Linux, Couvert par Azure for Students) ---
 resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   name: 'asp-${appName}'
   location: location
@@ -28,50 +18,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-09-01' = {
   }
 }
 
-// --- 2. Azure Database for MySQL Flexible Server ---
-resource mysqlServer 'Microsoft.DBforMySQL/flexibleServers@2023-06-30' = {
-  name: 'mysql-${appName}'
-  location: location
-  sku: {
-    name: mysqlSkuName
-    tier: 'Burstable'
-  }
-  properties: {
-    administratorLogin: mysqlAdminUser
-    administratorLoginPassword: mysqlAdminPassword
-    version: '8.0.21'
-    storage: {
-      storageSizeGB: 20
-      autoGrow: 'Enabled'
-    }
-    backup: {
-      backupRetentionDays: 7
-      geoRedundantBackup: 'Disabled'
-    }
-  }
-}
-
-// Base de données MySQL pour l'application
-resource mysqlDatabase 'Microsoft.DBforMySQL/flexibleServers/databases@2023-06-30' = {
-  parent: mysqlServer
-  name: 'ggevenements'
-  properties: {
-    charset: 'utf8mb4'
-    collation: 'utf8mb4_unicode_ci'
-  }
-}
-
-// Règle de pare-feu : Autoriser les services Azure (App Service)
-resource mysqlFirewallAzure 'Microsoft.DBforMySQL/flexibleServers/firewallRules@2023-06-30' = {
-  parent: mysqlServer
-  name: 'AllowAzureServices'
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
-  }
-}
-
-// --- 3. App Service Web App - Environnement PRODUCTION ---
+// --- 2. App Service Web App - Environnement PRODUCTION ---
 resource webAppProd 'Microsoft.Web/sites@2022-09-01' = {
   name: appName
   location: location
@@ -86,22 +33,30 @@ resource webAppProd 'Microsoft.Web/sites@2022-09-01' = {
         }
         {
           name: 'SPRING_DATASOURCE_URL'
-          value: 'jdbc:mysql://${mysqlServer.name}.mysql.database.azure.com:3306/ggevenements?useSSL=true&requireSSL=true&serverTimezone=UTC'
+          value: 'jdbc:h2:file:/home/site/wwwroot/db/ggevenements;MODE=MySQL;AUTO_SERVER=TRUE;DB_CLOSE_ON_EXIT=FALSE'
+        }
+        {
+          name: 'SPRING_DATASOURCE_DRIVER_CLASS_NAME'
+          value: 'org.h2.Driver'
         }
         {
           name: 'SPRING_DATASOURCE_USERNAME'
-          value: mysqlAdminUser
+          value: 'sa'
         }
         {
           name: 'SPRING_DATASOURCE_PASSWORD'
-          value: mysqlAdminPassword
+          value: ''
+        }
+        {
+          name: 'SPRING_JPA_DATABASE_PLATFORM'
+          value: 'org.hibernate.dialect.H2Dialect'
         }
       ]
     }
   }
 }
 
-// --- 4. App Service Web App - Environnement DEVELOPPEMENT (DEV) ---
+// --- 3. App Service Web App - Environnement DEVELOPPEMENT (DEV) ---
 resource webAppDev 'Microsoft.Web/sites@2022-09-01' = {
   name: '${appName}-dev'
   location: location
@@ -125,4 +80,3 @@ resource webAppDev 'Microsoft.Web/sites@2022-09-01' = {
 
 output webAppProdUrl string = 'https://${webAppProd.properties.defaultHostName}'
 output webAppDevUrl string = 'https://${webAppDev.properties.defaultHostName}'
-output mysqlServerFqdn string = '${mysqlServer.name}.mysql.database.azure.com'
