@@ -1,6 +1,6 @@
 # Guide de Déploiement Azure & GitHub Actions - GG'Événements
 
-Ce guide explique comment déployer l'application **GG'Événements** (Spring Boot + React) sur **Azure App Service** avec une base de données **Azure Database for MySQL Flexible Server** et un pipeline de CI/CD **GitHub Actions** pour les environnements `dev` et `production`.
+Ce guide explique le fonctionnement du déploiement de l'application **GG'Événements** (Spring Boot + React) sur **Azure App Service** avec la base de données **Azure SQL Database** et le pipeline de CI/CD **GitHub Actions** pour les branches `main` et `dev`.
 
 ---
 
@@ -12,25 +12,24 @@ Toutes les ressources utilisent le nom de l'application : **`gg-evenements`**
 |---|---|---|
 | **Groupe de ressources** | `rg-gg-evenements` | Contient toutes les ressources Azure du projet |
 | **App Service Plan** | `asp-gg-evenements` | Plan Linux (Java 17, Niveau B1) |
-| **App Service (Production)** | `gg-evenements` | Application web de prod (`https://gg-evenements.azurewebsites.net`) |
-| **App Service (Dev)** | `gg-evenements-dev` | Application web de dev (`https://gg-evenements-dev.azurewebsites.net`) |
-| **MySQL Flexible Server** | `mysql-gg-evenements` | Serveur MySQL 8 Azure (`mysql-gg-evenements.mysql.database.azure.com`) |
-| **Base de données MySQL** | `ggevenements` | Base de données principale |
+| **App Service (Production)** | `gg-evenements` | Application web (`https://gg-evenements.azurewebsites.net`) |
+| **Serveur Azure SQL** | `sql-gg-evenements` | Serveur de base de données (`sql-gg-evenements.database.windows.net`) |
+| **Base de données SQL** | `ggevenements` | Base de données principale |
 
 ---
 
 ## ⚙️ Environnements disponibles dans l'Application
 
-1. **Environnement Local / Dev (H2 en mémoire ou MySQL)** :
+1. **Environnement Local / Dev** :
    * Activé via le profil Spring : `spring.profiles.active=dev`
-   * Inclus la console H2 interactive : `http://localhost:8080/h2-console`
-2. **Environnement Azure (Production / Staging)** :
+   * Console H2 interactive : `http://localhost:8080/h2-console`
+2. **Environnement Azure** :
    * Activé via le profil Spring : `spring.profiles.active=azure`
-   * Utilise la base **Azure Database for MySQL Flexible Server** avec connexion sécurisée SSL.
+   * Connecté à la base de données **Azure SQL Database**.
 
 ---
 
-## 🚀 Étape 1 : Créer les ressources Azure (Automatisé avec Bicep)
+## 🚀 Étape 1 : Créer les ressources Azure (Automatisé avec Bicep / CLI)
 
 Exécutez le script d'infrastructure fourni dans le dossier `infra/` :
 
@@ -42,57 +41,40 @@ az login
 bash infra/deploy.sh
 ```
 
-Le script crée automatiquement le groupe de ressources, le plan App Service Linux, le serveur MySQL Azure, et les deux applications Web (Prod et Dev).
-
 ---
 
 ## 🔐 Étape 2 : Configuration du Dépôt GitHub
 
-### 1. Créer le dépôt sur GitHub et pousser le code
+### 1. Dépôt GitHub et branches
 ```bash
 # Ajouter le remote GitHub
-git remote add origin https://github.com/VOTRE_COMPTE/gg-evenements.git
+git remote add origin https://github.com/mabrouki23/gg-evenements.git
 
-# Pousser la branche principale (main)
+# Pousser les branches main et dev
 git push -u origin main
-
-# Pousser la branche de développement (dev)
 git push -u origin dev
 ```
 
-### 2. Ajouter les Secrets et Variables dans GitHub
+### 2. Secrets et Variables GitHub Actions
 
-Allez dans votre dépôt GitHub : **Settings > Secrets and variables > Actions**
+Dans GitHub : **Settings > Secrets and variables > Actions**
 
-#### 🔑 Secrets GitHub (`New repository secret`) :
+#### 🔑 Secrets GitHub :
+* `AZURE_WEBAPP_PUBLISH_PROFILE` : Profil de publication pour l'application Web.
 
-| Nom du Secret | Valeur |
-|---|---|
-| `AZURE_WEBAPP_PUBLISH_PROFILE` | Contenu du fichier `publish-profile-prod.xml` généré par le script |
-| `AZURE_WEBAPP_PUBLISH_PROFILE_DEV` | Contenu du fichier `publish-profile-dev.xml` généré par le script |
-
-#### 🌐 Variables GitHub (`New repository variable`) :
-
-| Nom de la Variable | Valeur |
-|---|---|
-| `AZURE_WEBAPP_NAME` | `gg-evenements` |
-| `AZURE_WEBAPP_NAME_DEV` | `gg-evenements-dev` |
+#### 🌐 Variables GitHub :
+* `AZURE_WEBAPP_NAME` : `gg-evenements`
 
 ---
 
 ## 🔄 Étape 3 : Fonctionnement des Pipelines GitHub Actions
 
-Deux workflows automatiques sont configurés dans `.github/workflows/` :
+Les workflows automatiques sont configurés dans `.github/workflows/` :
 
-### 1. Workflow de Déploiement Production (`.github/workflows/deploy-azure-prod.yml`)
-* **Déclenchement** : Automatique lors d'un `push` sur la branche `main`.
-* **Actions** :
-  1. Compiles le frontend React (Vite) et le backend Java (Spring Boot) en un seul fichier JAR.
-  2. Exécute la suite de tests automatisés Maven.
-  3. Déploie le package sur l'App Service Azure **`gg-evenements`**.
+1. **`deploy-azure-prod.yml`** (Branche `main`) :
+   * Compiles le frontend React (Vite) et le backend Java (Spring Boot) en un seul fichier JAR.
+   * Exécute les tests automatisés Maven.
+   * Déploie l'application sur Azure App Service **`gg-evenements`**.
 
-### 2. Workflow d'Intégration Dev (`.github/workflows/ci-dev.yml`)
-* **Déclenchement** : Automatique lors d'un `push` sur la branche `dev` ou lors d'une `Pull Request`.
-* **Actions** :
-  1. Compile et exécute les tests avec le profil **`dev`**.
-  2. Déploie automatiquement sur l'environnement de staging/dev **`gg-evenements-dev`**.
+2. **`ci-dev.yml`** (Branche `dev`) :
+   * Valide la compilation et exécute la suite de tests en mode dev.
